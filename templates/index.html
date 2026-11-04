@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Подсчёт комнатных растений</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        #resultImage { max-width: 100%; margin-top: 20px; }
+        #stats { font-size: 24px; font-weight: bold; margin-top: 10px; color: green; }
+    </style>
+</head>
+<body>
+    <h1>Подсчёт комнатных растений в квартире</h1>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    <br><br>
+    <button onclick="processImage()">Запустить обработку</button>
+	<p>
+    Скачать историю:
+    <a href="/export/pdf">PDF</a> |
+    <a href="/export/excel">Excel</a>
+</p>
+    
+    <div id="stats"></div>
+    <img id="resultImage" src="" alt="">
+
+
+<script>
+    let processing = false;
+
+    async function processImage() {
+        if (processing) return;
+
+        const file = document.getElementById('imageInput').files[0];
+        const stats = document.getElementById('stats');
+        const image = document.getElementById('resultImage');
+
+        if (!file) {
+            alert('Выберите изображение!');
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Размер файла не должен превышать 10 МБ.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        processing = true;
+        image.removeAttribute('src');
+        stats.innerText = 'Обработка...';
+
+        try {
+            const response = await fetch('/process', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Ошибка обработки.');
+            }
+
+            image.src = '/static/result.jpg?' + Date.now();
+            stats.innerText = `Обнаружено растений: ${data.count}`;
+        } catch (error) {
+            stats.innerText = error.message || 'Не удалось связаться с сервером.';
+        } finally {
+            processing = false;
+        }
+    }
+</script>
+</body>
+</html>
